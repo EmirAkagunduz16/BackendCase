@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { createHash } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import type { Response } from 'express';
+import { RegisterDto } from './dto/register.dto.js';
 
 @Injectable()
 export class AuthService {
@@ -20,12 +21,12 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  // async register(registerDto: RegisterDto) {
-  //   const user = await this.usersService.create({
-  //     email: registerDto.email,
-  //     password: registerDto.password,
-  //   });
-  // }
+  async register(registerDto: RegisterDto) {
+    return this.usersService.create({
+      email: registerDto.email,
+      password: registerDto.password,
+    });
+  }
 
   async login(user: User, response: Response) {
     const expiresAccessToken = new Date();
