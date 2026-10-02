@@ -1,46 +1,13 @@
-import {
-  ConflictException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { UsersRepository } from './users.repository.js';
 import * as bcrypt from 'bcrypt';
-import { mongo } from 'mongoose';
+import { mongo, type QueryFilter, type UpdateQuery } from 'mongoose';
 import { CreateUserInput } from './dto/create-user.dto.js';
-import { User } from './entities/user.entity.js';
-import { createHash } from 'node:crypto';
+import { User, type PublicUser } from './entities/user.entity.js';
 
 @Injectable()
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
-
-  async findByEmail(email: string) {
-    return this.usersRepository.findOneOrNull({ email });
-  }
-
-  async findOne(userId: string) {
-    return this.toEntity(await this.usersRepository.findOne({ _id: userId }));
-  }
-
-  async verifyUser(email: string, password: string) {
-    const user = await this.findByEmail(email);
-    if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      throw new UnauthorizedException('Credentials are not valid.');
-    }
-    return this.toEntity(user);
-  }
-
-  async updateRefreshToken(userId: string, refreshToken: string) {
-    const refreshTokenHash = this.hashRefreshToken(refreshToken);
-    await this.usersRepository.findOneAndUpdate(
-      { _id: userId },
-      { $set: { refreshTokenHash } },
-    );
-  }
-
-  private hashRefreshToken(refreshToken: string) {
-    return createHash('sha256').update(refreshToken).digest('hex');
-  }
 
   async create(createUserInput: CreateUserInput) {
     try {
@@ -58,11 +25,19 @@ export class UsersService {
     }
   }
 
+  async getUser(query: QueryFilter<User>) {
+    return this.usersRepository.findOne(query);
+  }
+
+  async updateUser(query: QueryFilter<User>, data: UpdateQuery<User>) {
+    return this.usersRepository.findOneAndUpdate(query, data);
+  }
+
   private async hashPassword(password: string) {
     return bcrypt.hash(password, 10);
   }
 
-  toEntity(userDocument: User) {
+  toEntity(userDocument: User): PublicUser {
     const {
       passwordHash: _passwordHash,
       refreshTokenHash: _refreshTokenHash,

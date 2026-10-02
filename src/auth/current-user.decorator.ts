@@ -1,8 +1,8 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import type { Request } from 'express';
-import type { TokenPayload } from './token-payload.interface.js';
+import type { PublicUser } from '../users/entities/user.entity.js';
 
 export const CurrentUser = createParamDecorator(
-  (_data: unknown, context: ExecutionContext): TokenPayload =>
-    context.switchToHttp().getRequest<Request & { user: TokenPayload }>().user,
+  (_data: unknown, context: ExecutionContext): PublicUser =>
+    context.switchToHttp().getRequest<Request & { user: PublicUser }>().user,
 );

@@ -1,10 +1,10 @@
 import { Transform } from 'class-transformer';
 import {
-  IsByteLength,
   IsEmail,
   IsString,
   MinLength,
   MaxLength,
+  IsStrongPassword,
 } from 'class-validator';
 
 export class CreateUserInput {
@@ -15,7 +15,6 @@ export class CreateUserInput {
   email: string;
 
   @IsString()
-  @MinLength(8)
-  @MaxLength(72)
+  @IsStrongPassword()
   password: string;
 }
