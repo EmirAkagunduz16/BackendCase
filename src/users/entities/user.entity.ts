@@ -1,6 +1,7 @@
-import { Prop, SchemaFactory } from '@nestjs/mongoose';
+import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from '../../common/database/abstract.entity.js';
 
+@Schema()
 export class User extends AbstractEntity {
   @Prop()
   email: string;
