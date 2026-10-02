@@ -2,12 +2,12 @@ import { Transform } from 'class-transformer';
 import {
   IsByteLength,
   IsEmail,
+  IsNotEmpty,
   IsString,
-  MinLength,
   MaxLength,
 } from 'class-validator';
 
-export class CreateUserInput {
+export class LoginDto {
   @Transform(({ value }) =>
     typeof value === 'string' ? value.trim().toLowerCase() : value,
   )
@@ -15,7 +15,7 @@ export class CreateUserInput {
   email: string;
 
   @IsString()
-  @MinLength(8)
+  @IsNotEmpty()
   @MaxLength(72)
   password: string;
 }
