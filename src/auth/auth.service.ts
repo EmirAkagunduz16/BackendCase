@@ -1,11 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UsersService } from '../users/users.service.js';
-import { RegisterDto } from './dto/register.dto.js';
 import type { User } from '../users/entities/user.entity.js';
 import type { TokenPayload } from './token-payload.interface.js';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
+import * as bcrypt from 'bcrypt';
+import type { Response } from 'express';
 
 @Injectable()
 export class AuthService {
@@ -15,28 +20,101 @@ export class AuthService {
     private readonly configService: ConfigService,
   ) {}
 
-  async register(registerDto: RegisterDto) {
-    const user = await this.usersService.create({
-      email: registerDto.email,
-      password: registerDto.password,
-    });
-    return this.login(user);
-  }
+  // async register(registerDto: RegisterDto) {
+  //   const user = await this.usersService.create({
+  //     email: registerDto.email,
+  //     password: registerDto.password,
+  //   });
+  // }
 
-  async login(user: Pick<User, '_id' | 'role'>) {
+  async login(user: User, response: Response) {
+    const expiresAccessToken = new Date();
+    expiresAccessToken.setMilliseconds(
+      expiresAccessToken.getTime() +
+        parseInt(
+          this.configService.getOrThrow<string>(
+            'JWT_ACCESS_TOKEN_EXPIRATION_MS',
+          ),
+        ),
+    );
+
+    const expiresRefreshToken = new Date();
+    expiresRefreshToken.setMilliseconds(
+      expiresRefreshToken.getTime() +
+        parseInt(
+          this.configService.getOrThrow<string>(
+            'JWT_REFRESH_TOKEN_EXPIRATION_MS',
+          ),
+        ),
+    );
+
     const tokenPayload: TokenPayload = {
-      _id: user._id.toHexString(),
-      role: user.role,
+      userId: user._id.toHexString(),
     };
-    const accessToken = await this.jwtService.signAsync(tokenPayload);
-    const refreshToken = await this.jwtService.signAsync(tokenPayload, {
-      secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-      expiresIn: '7d',
-      jwtid: randomUUID(),
+    const accessToken = this.jwtService.sign(tokenPayload, {
+      secret: this.configService.getOrThrow('JWT_ACCESS_TOKEN_SECRET'),
+      expiresIn: `${this.configService.getOrThrow(
+        'JWT_ACCESS_TOKEN_EXPIRATION_MS',
+      )}ms`,
     });
-    await this.usersService.updateRefreshToken(tokenPayload._id, refreshToken);
+    const refreshToken = this.jwtService.sign(tokenPayload, {
+      secret: this.configService.getOrThrow('JWT_REFRESH_TOKEN_SECRET'),
+      expiresIn: `${this.configService.getOrThrow(
+        'JWT_REFRESH_TOKEN_EXPIRATION_MS',
+      )}ms`,
+    });
+
+    await this.usersService.updateUser(
+      { _id: user._id },
+      { $set: { refreshToken: await bcrypt.hash(refreshToken, 10) } },
+    );
+
+    response.cookie('Authentication', accessToken, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      expires: expiresAccessToken,
+    });
+    response.cookie('Refresh', refreshToken, {
+      httpOnly: true,
+      secure: this.configService.get('NODE_ENV') === 'production',
+      expires: expiresRefreshToken,
+    });
+
     return { accessToken, refreshToken };
   }
 
-  async refresh() {}
+  async verifyUser(email: string, password: string) {
+    try {
+      const user = await this.usersService.getUser({ email });
+      if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+        throw new UnauthorizedException('Credentials are not valid.');
+      }
+      return this.usersService.toEntity(user);
+    } catch (error) {
+      throw new UnauthorizedException('Credentials are not valid.');
+    }
+  }
+
+  async verifyUserRefreshToken(refreshToken: string, userId: string) {
+    try {
+      const user = await this.usersService.getUser({ _id: userId });
+      if (!user) {
+        throw new NotFoundException('User with that id is not found.');
+      }
+      const isValidRefresh = await bcrypt.compare(
+        this.hashRefreshToken(refreshToken),
+        user.refreshTokenHash!,
+      );
+      if (!isValidRefresh) {
+        throw new UnauthorizedException('Refresh token is not valid.');
+      }
+      return this.usersService.toEntity(user);
+    } catch (error) {
+      throw new UnauthorizedException('Refresh token is not valid.');
+    }
+  }
+
+  private hashRefreshToken(refreshToken: string) {
+    return createHash('sha256').update(refreshToken).digest('hex');
+  }
 }

@@ -26,3 +26,5 @@ export class User extends AbstractEntity {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+export type PublicUser = Omit<User, 'passwordHash' | 'refreshTokenHash'>;
