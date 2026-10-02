@@ -1,21 +1,27 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { AbstractEntity } from '../../common/database/abstract.entity.js';
 
-@Schema()
+@Schema({ timestamps: true })
 export class User extends AbstractEntity {
-  @Prop()
+  @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop()
+  @Prop({ required: true })
   passwordHash: string;
 
-  @Prop()
+  @Prop({
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user',
+    required: true,
+  })
   role: 'user' | 'admin';
 
-  @Prop()
+  @Prop({ type: String, default: null })
+  refreshTokenHash: string | null;
+
   createdAt: Date;
 
-  @Prop()
   updatedAt: Date;
 }
 

@@ -7,7 +7,7 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
 
   constructor(protected readonly model: Model<T>) {}
 
-  async create(document: Omit<T, '_id'>): Promise<T> {
+  async create(document: Partial<Omit<T, '_id'>>): Promise<T> {
     const createdDocument = new this.model({
       ...document,
       _id: new Types.ObjectId(),
@@ -51,5 +51,9 @@ export abstract class AbstractRepository<T extends AbstractEntity> {
       throw new NotFoundException('Document not found.');
     }
     return document;
+  }
+
+  async findOneOrNull(filterQuery: QueryFilter<T>): Promise<T | null> {
+    return this.model.findOne(filterQuery).lean<T>().exec();
   }
 }
