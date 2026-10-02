@@ -12,7 +12,7 @@ import Joi from 'joi';
     }),
     MongooseModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
-        uri: configService.get('MONGO_DB_URI'),
+        uri: configService.get('MONGO_URI'),
       }),
       inject: [ConfigService],
     }),
