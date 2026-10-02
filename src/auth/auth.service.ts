@@ -8,7 +8,6 @@ import type { User } from '../users/entities/user.entity.js';
 import type { TokenPayload } from './token-payload.interface.js';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { createHash } from 'node:crypto';
 import * as bcrypt from 'bcrypt';
 import type { Response } from 'express';
 import { RegisterDto } from './dto/register.dto.js';
@@ -67,7 +66,7 @@ export class AuthService {
 
     await this.usersService.updateUser(
       { _id: user._id },
-      { $set: { refreshToken: await bcrypt.hash(refreshToken, 10) } },
+      { $set: { refreshTokenHash: await bcrypt.hash(refreshToken, 10) } },
     );
 
     response.cookie('Authentication', accessToken, {
@@ -103,7 +102,7 @@ export class AuthService {
         throw new NotFoundException('User with that id is not found.');
       }
       const isValidRefresh = await bcrypt.compare(
-        this.hashRefreshToken(refreshToken),
+        refreshToken,
         user.refreshTokenHash!,
       );
       if (!isValidRefresh) {
@@ -113,9 +112,5 @@ export class AuthService {
     } catch (error) {
       throw new UnauthorizedException('Refresh token is not valid.');
     }
-  }
-
-  private hashRefreshToken(refreshToken: string) {
-    return createHash('sha256').update(refreshToken).digest('hex');
   }
 }

@@ -5,6 +5,7 @@ import { CurrentUser } from './current-user.decorator.js';
 import type { User } from '../users/entities/user.entity.js';
 import type { Response } from 'express';
 import { RegisterDto } from './dto/register.dto.js';
+import { LocalAuthGuard } from './guards/local-auth.guard.js';
 
 @Controller('auth')
 export class AuthController {
@@ -16,6 +17,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(LocalAuthGuard)
   async login(
     @CurrentUser() user: User,
     @Res({ passthrough: true }) response: Response,
