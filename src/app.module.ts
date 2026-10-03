@@ -5,6 +5,7 @@ import { MediaModule } from './media/media.module.js';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './common/database/database.module.js';
 import Joi from 'joi';
+import { AppController } from './app.controller.js';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import Joi from 'joi';
     }),
     DatabaseModule,
   ],
-  controllers: [],
+  controllers: [AppController],
   providers: [],
 })
 export class AppModule {}
