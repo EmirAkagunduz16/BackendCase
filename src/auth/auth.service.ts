@@ -52,13 +52,13 @@ export class AuthService {
       userId: user._id.toHexString(),
     };
     const accessToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_ACCESS_TOKEN_SECRET'),
+      secret: this.configService.getOrThrow('JWT_ACCESS_SECRET'),
       expiresIn: `${this.configService.getOrThrow(
         'JWT_ACCESS_TOKEN_EXPIRATION_MS',
       )}ms`,
     });
     const refreshToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_REFRESH_TOKEN_SECRET'),
+      secret: this.configService.getOrThrow('JWT_REFRESH_SECRET'),
       expiresIn: `${this.configService.getOrThrow(
         'JWT_REFRESH_TOKEN_EXPIRATION_MS',
       )}ms`,
