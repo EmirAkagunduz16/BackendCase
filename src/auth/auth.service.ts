@@ -11,6 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import type { Response } from 'express';
 import { RegisterDto } from './dto/register.dto.js';
+import { createHash, randomUUID } from 'node:crypto';
 
 @Injectable()
 export class AuthService {
@@ -28,6 +29,26 @@ export class AuthService {
   }
 
   async login(user: User, response: Response) {
+    return this.issueTokens(user, response);
+  }
+
+  async refresh(user: User, refreshToken: string, response: Response) {
+    return this.issueTokens(
+      user,
+      response,
+      this.hashRefreshToken(refreshToken),
+    );
+  }
+
+  private hashRefreshToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async issueTokens(
+    user: User,
+    response: Response,
+    previousRefreshTokenHash?: string,
+  ) {
     const expiresAccessToken = new Date();
     expiresAccessToken.setTime(
       expiresAccessToken.getTime() +
@@ -58,16 +79,33 @@ export class AuthService {
       )}ms`,
     });
     const refreshToken = this.jwtService.sign(tokenPayload, {
+      jwtid: randomUUID(),
       secret: this.configService.getOrThrow('JWT_REFRESH_SECRET'),
       expiresIn: `${this.configService.getOrThrow(
         'JWT_REFRESH_TOKEN_EXPIRATION_MS',
       )}ms`,
     });
 
-    await this.usersService.updateUser(
-      { _id: user._id },
-      { $set: { refreshTokenHash: await bcrypt.hash(refreshToken, 10) } },
-    );
+    try {
+      // Matching and replacing the old hash in one operation consumes it once.
+      await this.usersService.updateUser(
+        {
+          _id: user._id,
+          ...(previousRefreshTokenHash !== undefined && {
+            refreshTokenHash: previousRefreshTokenHash,
+          }),
+        },
+        { $set: { refreshTokenHash: this.hashRefreshToken(refreshToken) } },
+      );
+    } catch (error) {
+      if (
+        previousRefreshTokenHash !== undefined &&
+        error instanceof NotFoundException
+      ) {
+        throw new UnauthorizedException('Refresh token is not valid.');
+      }
+      throw error;
+    }
 
     response.cookie('Authentication', accessToken, {
       httpOnly: true,
@@ -109,16 +147,20 @@ export class AuthService {
       if (!user) {
         throw new NotFoundException('User with that id is not found.');
       }
-      const isValidRefresh = await bcrypt.compare(
-        refreshToken,
-        user.refreshTokenHash!,
-      );
+      const isValidRefresh =
+        this.hashRefreshToken(refreshToken) === user.refreshTokenHash;
       if (!isValidRefresh) {
         throw new UnauthorizedException('Refresh token is not valid.');
       }
       return this.usersService.toEntity(user);
-    } catch {
-      throw new UnauthorizedException('Refresh token is not valid.');
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof UnauthorizedException
+      ) {
+        throw new UnauthorizedException('Refresh token is not valid.');
+      }
+      throw error;
     }
   }
 }

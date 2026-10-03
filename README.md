@@ -29,6 +29,8 @@ curl -H 'Authorization: Bearer <accessToken>' \
   http://localhost:3000/media/upload
 ```
 
+Her başarılı refresh, benzersiz `jti` içeren yeni bir refresh token üretir ve eskisini hemen geçersiz kılar. Veritabanında token'ın SHA-256 hash'i tutulur; eski hash'i eşleştirip yenisiyle değiştiren tek MongoDB işlemi sayesinde aynı token ile eşzamanlı yenilemelerden yalnız biri başarılı olur. Kullanıcı başına tek refresh token tutulduğu için yeni login önceki oturumun yenileme yetkisini de kaldırır. Eski access token kendi süresi dolana kadar geçerlidir. İstemci yeni access token'ı Bearer başlığında kullanmalıdır; Swagger ve Postman otomatik yenileme yapmaz. Önceki bcrypt hash'li refresh token'lar bu değişiklikten sonra kabul edilmez; yeniden login gerekir.
+
 Yükleme yanıtındaki medya `_id` değeriyle `GET /media/:id`, `GET /media/:id/download`, `GET /media/:id/permissions`, `POST /media/:id/permissions` ve `DELETE /media/:id` uçlarını deneyin. İzin ekleme örneği: `{ "userId": "<MongoDB ObjectId>", "action": "add" }`; kaldırmak için `remove`. Yalnız sahip izinleri yönetebilir ve medyayı silebilir. İzin verilen kullanıcı medyayı görüntüleyip indirebilir. Yükleme tek JPEG dosyası ve `MAX_FILE_SIZE` sınırı ile sınırlıdır.
 
 `pnpm test` birim testlerini, `pnpm test:e2e` HTTP controller/guard testlerini çalıştırır. HTTP testleri kullanıcı ve medya depolamasını bellekte taklit eder; Atlas veya gerçek dosya sistemiyle entegrasyon testi değildir. `pnpm lint` ve `pnpm build` ek kontrollerdir.

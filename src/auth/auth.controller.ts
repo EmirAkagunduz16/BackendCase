@@ -4,6 +4,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -11,7 +12,7 @@ import { AuthService } from './auth.service.js';
 import { JwtRefreshAuthGuard } from './guards/jwt-refresh-auth.guard.js';
 import { CurrentUser } from './current-user.decorator.js';
 import type { User } from '../users/entities/user.entity.js';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { RegisterDto } from './dto/register.dto.js';
 import { LocalAuthGuard } from './guards/local-auth.guard.js';
 import {
@@ -76,8 +77,9 @@ export class AuthController {
   @UseGuards(JwtRefreshAuthGuard)
   async refreshToken(
     @CurrentUser() user: User,
+    @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    return this.authService.login(user, response);
+    return this.authService.refresh(user, request.cookies.Refresh, response);
   }
 }
