@@ -7,20 +7,35 @@ import {
   Param,
   Delete,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  FileTypeValidator,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { MediaService } from './media.service.js';
-import { CreateMediaDto } from './dto/create-media.dto.js';
 import { UpdateMediaDto } from './dto/update-media.dto.js';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { CurrentUser } from '../auth/current-user.decorator.js';
+import type { PublicUser } from '../users/entities/user.entity.js';
 
 @Controller('media')
 @UseGuards(JwtAuthGuard)
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
-  @Post()
-  create(@Body() createMediaDto: CreateMediaDto) {
-    return this.mediaService.create(createMediaDto);
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  upload(
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [new FileTypeValidator({ fileType: /^image\/jpeg$/ })],
+      }),
+    )
+    file: Express.Multer.File,
+    @CurrentUser() user: PublicUser,
+  ) {
+    return this.mediaService.upload(file, user._id);
   }
 
   @Get()
