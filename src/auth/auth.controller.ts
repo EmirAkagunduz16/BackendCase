@@ -45,8 +45,9 @@ export class AuthController {
   }
 
   @Post('login')
+  @ApiBadRequestResponse({ description: 'Invalid email or password input.' })
   @ApiUnauthorizedResponse({
-    description: 'Missing or incorrect login credentials.',
+    description: 'Incorrect login credentials.',
   })
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({

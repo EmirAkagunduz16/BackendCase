@@ -29,7 +29,7 @@ export class AuthService {
 
   async login(user: User, response: Response) {
     const expiresAccessToken = new Date();
-    expiresAccessToken.setMilliseconds(
+    expiresAccessToken.setTime(
       expiresAccessToken.getTime() +
         parseInt(
           this.configService.getOrThrow<string>(
@@ -39,7 +39,7 @@ export class AuthService {
     );
 
     const expiresRefreshToken = new Date();
-    expiresRefreshToken.setMilliseconds(
+    expiresRefreshToken.setTime(
       expiresRefreshToken.getTime() +
         parseInt(
           this.configService.getOrThrow<string>(
@@ -85,12 +85,20 @@ export class AuthService {
 
   async verifyUser(email: string, password: string) {
     try {
-      const user = await this.usersService.getUser({ email });
+      const user = await this.usersService.getUser({
+        email: email.trim().toLowerCase(),
+      });
       if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
         throw new UnauthorizedException('Credentials are not valid.');
       }
       return this.usersService.toEntity(user);
-    } catch {
+    } catch (error) {
+      if (!(
+        error instanceof NotFoundException ||
+        error instanceof UnauthorizedException
+      )) {
+        throw error;
+      }
       throw new UnauthorizedException('Credentials are not valid.');
     }
   }
