@@ -29,7 +29,7 @@ export class MediaOwnerGuard implements CanActivate {
     const isOwner = media.ownerId.equals(userId);
     if (!isOwner) {
       throw new ForbiddenException(
-        'Only the owner can access media permissions.',
+        'Only the owner can perform this operation.',
       );
     }
 
