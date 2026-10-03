@@ -14,6 +14,8 @@ import Joi from 'joi';
     ConfigModule.forRoot({
       isGlobal: true,
       validationSchema: Joi.object({
+        UPLOAD_DIR: Joi.string().required(),
+        MAX_FILE_SIZE: Joi.number().integer().positive().required(),
         JWT_ACCESS_SECRET: Joi.string().min(32).required(),
         JWT_REFRESH_SECRET: Joi.string()
           .min(32)
