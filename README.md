@@ -20,7 +20,7 @@ curl -c cookies.txt -X POST http://localhost:3000/auth/login \
   -d '{"email":"owner@example.com","password":"Password123!"}'
 ```
 
-Kayıt yalnız parola hash'i çıkarılmış kullanıcıyı döndürür; giriş ayrı `/auth/login` isteğidir. Giriş yanıtındaki `accessToken` değerini medya isteklerinde `Authorization: Bearer <accessToken>` başlığında gönderin. Erişim için `Authentication` cookie'si tek başına kabul edilmez. `Refresh` cookie'si yalnız `/auth/refresh` için kullanılır:
+Kayıt yalnız hassas hash alanları çıkarılmış kullanıcıyı döndürür; giriş ayrı `/auth/login` isteğidir. Login ve refresh yanıt gövdesi yalnız `{ "accessToken": "..." }` içerir. Bu token'ı `/users/me` ve tüm medya isteklerinde `Authorization: Bearer <accessToken>` başlığında gönderin. Access token cookie'ye yazılmaz; cookie ile medya erişimi kabul edilmez. Refresh token yalnız `HttpOnly` `Refresh` cookie'sinde gönderilir, yanıt gövdesinde bulunmaz. `/auth/refresh` bu cookie'yi okuyup yeniler:
 
 ```bash
 curl -b cookies.txt -c cookies.txt -X POST http://localhost:3000/auth/refresh
@@ -28,6 +28,8 @@ curl -H 'Authorization: Bearer <accessToken>' \
   -F 'file=@sample.jpg;type=image/jpeg' \
   http://localhost:3000/media/upload
 ```
+
+Swagger'da önce login isteğini çalıştırın, yanıttaki `accessToken` değerini **Authorize** alanına girin. Aynı tarayıcıdaki Swagger, login sırasında kaydedilen `Refresh` cookie'sini refresh isteğinde gönderir; cookie değerini elle girmeniz gerekmez. Refresh sonrası dönen access token ile **Authorize** değerini güncelleyin. Production'da `Refresh` cookie'si `Secure` olarak yazılır ve HTTPS gerekir.
 
 Her başarılı refresh, benzersiz `jti` içeren yeni bir refresh token üretir ve eskisini hemen geçersiz kılar. Veritabanında token'ın SHA-256 hash'i tutulur; eski hash'i eşleştirip yenisiyle değiştiren tek MongoDB işlemi sayesinde aynı token ile eşzamanlı yenilemelerden yalnız biri başarılı olur. Kullanıcı başına tek refresh token tutulduğu için yeni login önceki oturumun yenileme yetkisini de kaldırır. Eski access token kendi süresi dolana kadar geçerlidir. İstemci yeni access token'ı Bearer başlığında kullanmalıdır; Swagger ve Postman otomatik yenileme yapmaz. Önceki bcrypt hash'li refresh token'lar bu değişiklikten sonra kabul edilmez; yeniden login gerekir.
 

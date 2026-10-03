@@ -49,16 +49,6 @@ export class AuthService {
     response: Response,
     previousRefreshTokenHash?: string,
   ) {
-    const expiresAccessToken = new Date();
-    expiresAccessToken.setTime(
-      expiresAccessToken.getTime() +
-        parseInt(
-          this.configService.getOrThrow<string>(
-            'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-          ),
-        ),
-    );
-
     const expiresRefreshToken = new Date();
     expiresRefreshToken.setTime(
       expiresRefreshToken.getTime() +
@@ -107,18 +97,13 @@ export class AuthService {
       throw error;
     }
 
-    response.cookie('Authentication', accessToken, {
-      httpOnly: true,
-      secure: this.configService.get('NODE_ENV') === 'production',
-      expires: expiresAccessToken,
-    });
     response.cookie('Refresh', refreshToken, {
       httpOnly: true,
       secure: this.configService.get('NODE_ENV') === 'production',
       expires: expiresRefreshToken,
     });
 
-    return { accessToken, refreshToken };
+    return { accessToken };
   }
 
   async verifyUser(email: string, password: string) {

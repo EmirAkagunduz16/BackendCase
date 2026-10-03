@@ -53,7 +53,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
     type: TokenResponseDto,
-    description: 'Authentication tokens.',
+    description:
+      'Access token for Bearer authentication. Refresh token is set only in the HttpOnly Refresh cookie.',
   })
   @ApiBody({ type: LoginDto })
   @UseGuards(LocalAuthGuard)
@@ -72,7 +73,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse({
     type: TokenResponseDto,
-    description: 'Refreshed authentication tokens.',
+    description:
+      'New access token for Bearer authentication. Refresh token is rotated in the HttpOnly Refresh cookie.',
   })
   @UseGuards(JwtRefreshAuthGuard)
   async refreshToken(

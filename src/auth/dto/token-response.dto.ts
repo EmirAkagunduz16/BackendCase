@@ -6,10 +6,4 @@ export class TokenResponseDto {
     example: 'eyJhbGciOiJIUzI1NiJ9.example-access-payload.example-signature',
   })
   accessToken: string;
-
-  @ApiProperty({
-    description: 'JWT refresh token.',
-    example: 'eyJhbGciOiJIUzI1NiJ9.example-refresh-payload.example-signature',
-  })
-  refreshToken: string;
 }
