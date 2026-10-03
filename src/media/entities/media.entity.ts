@@ -34,3 +34,5 @@ export class Media extends AbstractEntity {
 }
 
 export const MediaSchema = SchemaFactory.createForClass(Media);
+
+export type PublicMedia = Omit<Media, 'filePath'>;

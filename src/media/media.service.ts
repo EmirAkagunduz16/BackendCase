@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { mkdir, open, rm } from 'fs/promises';
+import { mkdir, open, rm, type FileHandle } from 'fs/promises';
 import { join, resolve } from 'path';
 import type { Types } from 'mongoose';
-import { UpdateMediaDto } from './dto/update-media.dto.js';
 import { MediaRepository } from './media.repository.js';
+import type { Media, PublicMedia } from './entities/media.entity.js';
 
 @Injectable()
 export class MediaService {
@@ -37,15 +37,7 @@ export class MediaService {
         size: file.size,
       });
 
-      return {
-        _id: media._id,
-        ownerId: media.ownerId,
-        fileName: media.fileName,
-        mimeType: media.mimeType,
-        size: media.size,
-        allowedUserIds: media.allowedUserIds,
-        createdAt: media.createdAt,
-      };
+      return this.toPublicMedia(media);
     } catch (error) {
       try {
         await fileHandle.close();
@@ -64,19 +56,41 @@ export class MediaService {
     }
   }
 
-  findAll() {
-    return `This action returns all media`;
+  async findMy(ownerId: Types.ObjectId) {
+    const media = await this.mediaRepository.find({ ownerId });
+    return media.map((item) => this.toPublicMedia(item));
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} media`;
+  findOne(id: Types.ObjectId) {
+    return this.mediaRepository.findOne({ _id: id });
   }
 
-  update(id: number, updateMediaDto: UpdateMediaDto) {
-    return `This action updates a #${id} media`;
+  async download(media: Media) {
+    let fileHandle: FileHandle;
+    try {
+      fileHandle = await open(media.filePath, 'r');
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        'code' in error &&
+        error.code === 'ENOENT'
+      ) {
+        throw new NotFoundException('Media file not found.');
+      }
+      throw error;
+    }
+    return fileHandle.createReadStream();
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} media`;
+  toPublicMedia(media: Media): PublicMedia {
+    return {
+      _id: media._id,
+      ownerId: media.ownerId,
+      fileName: media.fileName,
+      mimeType: media.mimeType,
+      size: media.size,
+      allowedUserIds: media.allowedUserIds,
+      createdAt: media.createdAt,
+    };
   }
 }
