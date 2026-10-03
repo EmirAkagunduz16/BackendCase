@@ -1,11 +1,5 @@
 import { Transform } from 'class-transformer';
-import {
-  IsEmail,
-  IsString,
-  MinLength,
-  MaxLength,
-  IsStrongPassword,
-} from 'class-validator';
+import { IsEmail, IsString, IsStrongPassword } from 'class-validator';
 
 export class CreateUserInput {
   @Transform(({ value }) =>
