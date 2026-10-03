@@ -122,6 +122,19 @@ export class MediaService {
     return fileHandle.createReadStream();
   }
 
+  async deleteMedia(media: Media, ownerId: Types.ObjectId) {
+    try {
+      await rm(media.filePath, { force: true });
+      await this.mediaRepository.findOneAndDelete({
+        _id: media._id,
+        ownerId,
+      });
+    } catch (error) {
+      this.logger.error('Failed to delete media.', error);
+      throw error;
+    }
+  }
+
   toPublicMedia(media: Media): PublicMedia {
     return {
       _id: media._id,

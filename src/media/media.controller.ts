@@ -11,6 +11,7 @@ import {
   Body,
   HttpCode,
   HttpStatus,
+  Delete,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { MediaService } from './media.service.js';
@@ -83,5 +84,12 @@ export class MediaController {
       user._id,
       updateMediaPermissionDto,
     );
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(MediaOwnerGuard)
+  mediaDelete(@CurrentMedia() media: Media, @CurrentUser() user: PublicUser) {
+    return this.mediaService.deleteMedia(media, user._id);
   }
 }
