@@ -8,6 +8,9 @@ import {
   ParseFilePipe,
   FileTypeValidator,
   StreamableFile,
+  Body,
+  HttpCode,
+  HttpStatus,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { MediaService } from './media.service.js';
@@ -17,6 +20,8 @@ import type { PublicUser } from '../users/entities/user.entity.js';
 import { MediaAccessGuard } from './guards/media-access.guard.js';
 import { CurrentMedia } from './current-media.decorator.js';
 import type { Media } from './entities/media.entity.js';
+import { MediaOwnerGuard } from './guards/media-owner.guard.js';
+import { UpdateMediaPermissionDto } from './dto/update-permissions.dto.js';
 
 @Controller('media')
 @UseGuards(JwtAuthGuard)
@@ -57,5 +62,26 @@ export class MediaController {
       disposition: `attachment; filename="${media.fileName}"`,
       length: media.size,
     });
+  }
+
+  @Get(':id/permissions')
+  @UseGuards(MediaOwnerGuard)
+  permissions(@CurrentMedia() media: Media) {
+    return this.mediaService.getPermissions(media);
+  }
+
+  @Post(':id/permissions')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(MediaOwnerGuard)
+  updatePermissions(
+    @CurrentMedia() media: Media,
+    @CurrentUser() user: PublicUser,
+    @Body() updateMediaPermissionDto: UpdateMediaPermissionDto,
+  ) {
+    return this.mediaService.updatePermissions(
+      media,
+      user._id,
+      updateMediaPermissionDto,
+    );
   }
 }

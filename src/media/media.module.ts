@@ -7,10 +7,13 @@ import { Media, MediaSchema } from './entities/media.entity.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MulterModule } from '@nestjs/platform-express';
 import { MediaAccessGuard } from './guards/media-access.guard.js';
+import { MediaOwnerGuard } from './guards/media-owner.guard.js';
+import { UsersModule } from '../users/users.module.js';
 
 @Module({
   imports: [
     ConfigModule,
+    UsersModule,
     MulterModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -23,6 +26,6 @@ import { MediaAccessGuard } from './guards/media-access.guard.js';
     DatabaseModule.forFeature([{ name: Media.name, schema: MediaSchema }]),
   ],
   controllers: [MediaController],
-  providers: [MediaService, MediaRepository, MediaAccessGuard],
+  providers: [MediaService, MediaRepository, MediaAccessGuard, MediaOwnerGuard],
 })
 export class MediaModule {}

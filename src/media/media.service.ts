@@ -1,11 +1,18 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { mkdir, open, rm, type FileHandle } from 'fs/promises';
 import { join, resolve } from 'path';
-import type { Types } from 'mongoose';
+import { Types } from 'mongoose';
 import { MediaRepository } from './media.repository.js';
 import type { Media, PublicMedia } from './entities/media.entity.js';
+import { UsersService } from '../users/users.service.js';
+import type { UpdateMediaPermissionDto } from './dto/update-permissions.dto.js';
 
 @Injectable()
 export class MediaService {
@@ -14,6 +21,7 @@ export class MediaService {
   constructor(
     private readonly mediaRepository: MediaRepository,
     private readonly configService: ConfigService,
+    private readonly usersService: UsersService,
   ) {}
 
   async upload(file: Express.Multer.File, ownerId: Types.ObjectId) {
@@ -63,6 +71,38 @@ export class MediaService {
 
   findOne(id: Types.ObjectId) {
     return this.mediaRepository.findOne({ _id: id });
+  }
+
+  getPermissions(media: Media) {
+    return {
+      mediaId: media._id,
+      allowedUserIds: media.allowedUserIds,
+    };
+  }
+
+  async updatePermissions(
+    media: Media,
+    ownerId: Types.ObjectId,
+    updateMediaPermissionDto: UpdateMediaPermissionDto,
+  ) {
+    const userId = new Types.ObjectId(updateMediaPermissionDto.userId);
+    if (userId.equals(ownerId)) {
+      throw new BadRequestException('Cannot change permissions for the owner.');
+    }
+
+    if (updateMediaPermissionDto.action === 'add') {
+      await this.usersService.getUser({ _id: userId });
+    }
+
+    const update =
+      updateMediaPermissionDto.action === 'add'
+        ? { $addToSet: { allowedUserIds: userId } }
+        : { $pull: { allowedUserIds: userId } };
+    const updatedMedia = await this.mediaRepository.findOneAndUpdate(
+      { _id: media._id, ownerId },
+      update,
+    );
+    return this.getPermissions(updatedMedia);
   }
 
   async download(media: Media) {
