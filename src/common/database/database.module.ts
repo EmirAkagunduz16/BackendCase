@@ -5,11 +5,6 @@ import Joi from 'joi';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      validationSchema: Joi.object({
-        MONGO_URI: Joi.string().required(),
-      }),
-    }),
     MongooseModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
         uri: configService.get('MONGO_URI'),
